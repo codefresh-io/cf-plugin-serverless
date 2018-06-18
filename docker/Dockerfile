@@ -1,3 +1,3 @@
 FROM node:9-alpine
 
-RUN npm install -g serverless
+RUN npm install -g eslint
