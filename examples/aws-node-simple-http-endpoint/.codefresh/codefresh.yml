@@ -27,7 +27,7 @@ steps:
       - serverless package
 
   deploy_staging:
-    image: codefresh/serverless:1.23
+    image: codefresh/serverless:1.27
     title: deploy service to staging
     working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
     commands:
@@ -38,7 +38,7 @@ steps:
           - master
 
   deploy_production:
-    image: codefresh/serverless:1.23
+    image: codefresh/serverless:1.27
     title: deploy service to production
     working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
     commands:
