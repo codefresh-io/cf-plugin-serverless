@@ -1,0 +1,43 @@
+version: '1.0'
+
+steps:
+
+  setup:
+    image: alpine:3.7
+    title: generate AWS shared credentials file
+    command:
+      - echo -n $AWS_CREDENTIALS_FILE | base64 -d > .aws/credentials
+      - cf_export AWS_SHARED_CREDENTIALS_FILE=${PWD}/.aws/credentials
+
+  test:
+    image: node:9-alpine
+    title: test service
+    commands:
+      - yarn lint
+      - yarn test
+
+  package:
+    image: codefresh/serverless:1.23
+    title: package service
+    commands:
+      - serverless package
+
+  deploy_staging:
+    image: codefresh/serverless:1.23
+    title: deploy service to staging
+    commands:
+      - serverless deploy --package .serverless --stage staging --aws-profile develop
+    when:
+      branch:
+        ignore:
+          - master
+
+  deploy_production:
+    image: codefresh/serverless:1.23
+    title: deploy service to production
+    commands:
+      - serverless deploy --package .serverless --stage production --aws-profile devops
+    when:
+      branch:
+        only:
+          - master
