@@ -7,7 +7,7 @@ steps:
     title: generate AWS shared credentials file
     command:
       - echo -n $AWS_CREDENTIALS_FILE | base64 -d > .aws/credentials
-      - cf_export AWS_SHARED_CREDENTIALS_FILE=$(pwd)/.aws/credentials
+      - cf_export AWS_SHARED_CREDENTIALS_FILE=.aws/credentials
 
   test:
     image: node:9-alpine
