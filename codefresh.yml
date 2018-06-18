@@ -12,7 +12,10 @@ steps:
   build:
     type: build
     title: create Docker image
+    dockerfile: docker/Dockerfile
     image_name: codefresh/serverless
+    build_arguments:
+      - SERVERLESS_VER=${{VERSION}}
 
   dockerhub_push_master:
     type: push
