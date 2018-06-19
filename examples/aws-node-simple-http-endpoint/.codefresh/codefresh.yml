@@ -50,11 +50,12 @@ steps:
     title: package service
     working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
     commands:
-      - serverless package --stage ${STAGE} --region ${REGION} --package ${PACKAGE}
+      # - serverless package --stage ${STAGE} --region ${REGION} --package ${PACKAGE}
+      - serverless package --region ${REGION} --package ${PACKAGE}
 
   deploy:
     image: codefresh/serverless:1.27
-    title: deploy service to staging
+    title: deploy service
     working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
     commands:
       - serverless deploy --package ${PACKAGE} --conceal --verbose --aws-profile ${PROFILE}
