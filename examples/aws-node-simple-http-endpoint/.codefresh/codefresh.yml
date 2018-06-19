@@ -19,31 +19,42 @@ steps:
       - yarn lint
       - yarn test
 
-  package:
-    image: codefresh/serverless:1.27
-    title: package service
-    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+  init_staging:
+    image: alpine:3.7
+    title: setup deployment environment
     commands:
-      - serverless package
-
-  deploy_staging:
-    image: codefresh/serverless:1.27
-    title: deploy service to staging
-    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
-    commands:
-      - serverless deploy --package .serverless --stage staging --aws-profile develop
+      - cf_export REGION=eu-west-1
+      - cf_export STAGE=staging
+      - cf_export PROFILE=develop
+      - cf_export PACKAGE=.serverles.staging
     when:
       branch:
         ignore:
           - master
 
-  deploy_production:
-    image: codefresh/serverless:1.27
-    title: deploy service to production
-    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+  init_production:
+    image: alpine:3.7
+    title: setup deployment environment
     commands:
-      - serverless deploy --package .serverless --stage production --aws-profile devops
+      - cf_export REGION=eu-central-1
+      - cf_export STAGE=production
+      - cf_export PROFILE=devops
+      - cf_export PACKAGE=.serverles.production
     when:
       branch:
         only:
           - master
+
+  package:
+    image: codefresh/serverless:1.27
+    title: package service
+    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+    commands:
+      - serverless package --stage ${STAGE} --region ${REGION} --package ${PACKAGE}
+
+  deploy:
+    image: codefresh/serverless:1.27
+    title: deploy service to staging
+    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+    commands:
+      - serverless deploy --package ${PACKAGE} --conceal --verbose --aws-profile ${PROFILE}
