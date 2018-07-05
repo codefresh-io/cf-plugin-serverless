@@ -56,7 +56,7 @@ steps:
     working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
     fail_fast: false
     commands:
-      - serverless invoke --function currentTime --stage ${AWS_STAGE} --region ${AWS_REGION} --path test/data.json && cf_export INTEGRATION_FAILED="false" || cf_export INTEGRATION_FAILED="true"
+      - serverless invoke --function currentTime --stage ${AWS_STAGE} --region ${AWS_REGION} --path test/data.json && cf_export INTEGRATION_FAILED=false || cf_export INTEGRATION_FAILED=true
     
   rollback:
     image: codefresh/serverless:1.28
@@ -75,7 +75,7 @@ steps:
 
   release_pull_request:
     image: codefresh/serverless:1.28
-    title: create a pull-request for release, if integration tests passed
+    title: create a pull-request for release, if integration tests passed 
     working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
     commands:
       - if [ ${INTEGRATION_FAILED} == false ]; curl -H 'Authorization: token ${GITHUB_TOKEN}' -d '{"title":"release of ${{CF_BRANCH}}","base":"master", "head":"${{CF_BRANCH}}"}' https://api.github.com/repos/${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}/pulls; fi
