@@ -7,8 +7,7 @@ module.exports.endpoint = (event, context, callback) => {
       message: `Hello, 
       the current time: ${new Date().toTimeString()},
       the event: ${JSON.stringify(event)}, 
-      the context: ${JSON.stringify(context)}
-      bye!`,
+      the context: ${JSON.stringify(context)}`,
     }),
   };
 

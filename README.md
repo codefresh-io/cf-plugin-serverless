@@ -21,14 +21,14 @@ steps:
       - cf_export AWS_SHARED_CREDENTIALS_FILE=${PWD}/.aws/credentials
 
   package:
-    image: codefresh/serverless:1.27
+    image: codefresh/serverless:1.28
     title: package serverless service
     working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
     commands:
       - serverless package --stage ${AWS_STAGE} --region ${AWS_REGION} --package ${PACKAGE}
 
   deploy:
-    image: codefresh/serverless:1.27
+    image: codefresh/serverless:1.28
     title: deploy to AWS with serverless framework
     working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
     commands:
