@@ -56,11 +56,32 @@ steps:
     working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
     fail_fast: false
     commands:
-      - serverless invoke --function currentTime --stage ${AWS_STAGE} --region ${AWS_REGION} --path test/data.json
-    on_success:
-      - echo "open PR from ${{CF_BRANCH}}"
-      - curl -H 'Authorization: token ${GITHUB_TOKEN}' -d '{"title":"release of ${{CF_BRANCH}}","base":"master", "head":"${{CF_BRANCH}}"}' https://api.github.com/repos/${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}/pulls
-    on_finish:
-      - echo "cleaning up"
+      - serverless invoke --function currentTime --stage ${AWS_STAGE} --region ${AWS_REGION} --path test/data.json && cf_export INTEGRATION_FAILED="false" || cf_export INTEGRATION_FAILED="true"
+    
+  rollback:
+    image: codefresh/serverless:1.28
+    title: rollback if integration test failed
+    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+    commands:
+      - ${INTEGRATION_FAILED} && echo "rollback to previous version on error" || true
+      - ${INTEGRATION_FAILED} && if [ ! -z "${KEEP_VERSION}" ]; then serverless rollback --verbose --timestamp ${KEEP_VERSION} --region ${AWS_REGION} --stage ${AWS_STAGE} --aws-profile ${AWS_PROFILE}; fi || true
+
+  cleanup:
+    image: codefresh/serverless:1.28
+    title: cleanup allocated resources
+    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+    commands:
       - serverless remove --verbose --region ${AWS_REGION} --stage ${AWS_STAGE} --aws-profile ${AWS_PROFILE}
 
+  release_pull_request:
+    image: codefresh/serverless:1.28
+    title: create a pull-request for release, if integration tests passed
+    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+    commands:
+      - if [ ${INTEGRATION_FAILED} == false ]; curl -H 'Authorization: token ${GITHUB_TOKEN}' -d '{"title":"release of ${{CF_BRANCH}}","base":"master", "head":"${{CF_BRANCH}}"}' https://api.github.com/repos/${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}/pulls; fi
+
+  decide_on_status:
+    image: alpine:3.7
+    title: decide on pipeline status
+    commands:
+      - if [ ${INTEGRATION_FAILED} == true ]; then echo "integration tests failed" && exit 1; fi
