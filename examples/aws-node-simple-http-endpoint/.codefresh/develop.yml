@@ -1,0 +1,66 @@
+version: '1.0'
+
+steps:
+
+  check_master:
+    image: alpine:3.7
+    title: fail on master branch
+    commands:
+      - echo "cannot run this pipeline on master"
+      - exit 1
+    condition:
+      branch:
+        only:
+          - master
+
+  setup:
+    image: alpine:3.7
+    title: generate AWS shared credentials file
+    commands:
+      - mkdir -p .aws
+      - echo -n $AWS_CREDENTIALS_FILE | base64 -d > ${PWD}/.aws/credentials
+      - cf_export AWS_SHARED_CREDENTIALS_FILE=${PWD}/.aws/credentials
+
+  test:
+    image: node:10-alpine
+    title: lint and test
+    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+    commands:
+      - yarn lint
+      - yarn test
+
+  package:
+    image: codefresh/serverless:1.27
+    title: package serverless service
+    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+    commands:
+      - serverless package --stage ${AWS_STAGE} --region ${AWS_REGION} --package ${PACKAGE}
+
+  archive:
+    image: mesosphere/aws-cli
+    title: archive package to S3 bucket
+    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+    commands:
+      - aws --profile ${AWS_PROFILE} --region ${AWS_REGION} s3 cp ${PACKAGE} s3://${AWS_BUCKET}/${{CF_BRANCH}}/${{CF_SHORT_REVISION}}/ --recursive
+
+  deploy:
+    image: codefresh/serverless:1.27
+    title: deploy to AWS with serverless framework
+    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+    commands:
+      - serverless deploy --conceal --verbose --stage ${AWS_STAGE} --region ${AWS_REGION} --aws-profile ${AWS_PROFILE} --package ${PACKAGE}
+
+  integration:
+    image: codefresh/serverless:1.27
+    title: run integration test
+    working_directory: ${{main_clone}}/examples/aws-node-simple-http-endpoint
+    fail_fast: false
+    commands:
+      - serverless invoke --function currentTime --stage ${AWS_STAGE} --region ${AWS_REGION} --path test/data.json
+    on_success:
+      - echo "open PR from ${{CF_BRANCH}}"
+      - curl -d '{"title":"release of ${{CF_BRANCH}}","base":"master", "head":"${{CF_BRANCH}}"}' https://api.github.com/repos/${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}/pulls
+    on_finish:
+      - echo "cleaning up"
+      - serverless remove --verbose --region ${AWS_REGION} --stage ${AWS_STAGE} --aws-profile ${AWS_PROFILE}
+
